@@ -30,7 +30,7 @@ body {
 .animated-line {
   stroke-dasharray: 5, 10; /* Dotted pattern (dash length, gap length) */
   stroke-dashoffset: 0;    /* Initial position of the dashes */
-  animation: dash 1s linear infinite; /* Animate the dashes */
+  animation: dash 2s linear infinite; /* Animate the dashes */
 }
 
 .plane-icon {
