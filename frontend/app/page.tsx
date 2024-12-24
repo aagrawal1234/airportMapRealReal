@@ -18,8 +18,9 @@ export default function Page() {
     const [map, setMap] = useState<L.Map | null>(null);
     const [markers, setMarkers] = useState<L.Marker[]>([]);
     let activeLine: L.Polyline | null = null;
-
+    const backendUrl = 'http://localhost:4000/api/airports'; // Replace with your deployed backend URL for production
     const krhvCoords: L.LatLngTuple = [37.3326, -121.8192];
+    
 
     useEffect(() => {
         const initMap = L.map('map').setView([37.7749, -122.4194], 7); // Center near San Francisco
@@ -29,10 +30,114 @@ export default function Page() {
         }).addTo(initMap);
         setMap(initMap);
 
+        fetchSavedAirports(initMap);
+
         return () => {
             initMap.remove();
         };
     }, []);
+
+
+    const fetchSavedAirports = async (initMap: L.Map) => {
+        try {
+            const response = await fetch(backendUrl);
+            const airports = await response.json();
+
+            airports.forEach((airport: { name: string; lat: number; lon: number }) => {
+                const marker = L.marker([airport.lat, airport.lon])
+                    .addTo(initMap)
+                    .bindPopup(`<b>${airport.name}</b>`)
+                    .on('click', () => handleMarkerClick(airport.lat, airport.lon, marker, airport.name))
+                    .on('popupclose', handlePopupClose);
+
+                setMarkers((prevMarkers) => [...prevMarkers, marker]);
+            });
+        } catch (error) {
+            console.error('Error fetching saved airports:', error);
+        }
+    };
+
+
+ 
+       const handleAddAirport = async () => {
+        const dropdown = document.getElementById('airportDropdown') as HTMLSelectElement;
+        if (!map || !dropdown) return;
+
+        const [lat, lon] = dropdown.value.split(',').map(Number);
+        const airportName = dropdown.options[dropdown.selectedIndex].text;
+
+        const existingMarker = markers.find(
+            (marker) => marker.getLatLng().lat === lat && marker.getLatLng().lng === lon
+        );
+
+        if (existingMarker) {
+            alert('Airport already exists on the map!');
+            return;
+        }
+
+        try {
+            const response = await fetch(backendUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: airportName, lat, lon }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add airport');
+            }
+
+            const marker = L.marker([lat, lon])
+                .addTo(map)
+                .bindPopup(`<b>${airportName}</b>`)
+                .on('click', () => handleMarkerClick(lat, lon, marker, airportName))
+                .on('popupclose', handlePopupClose);
+
+            setMarkers((prevMarkers) => [...prevMarkers, marker]);
+        } catch (error) {
+            console.error('Error adding airport:', error);
+            alert('Failed to add airport.');
+        }
+    };
+
+    const handleDeleteAirport = async () => {
+        const dropdown = document.getElementById('airportDropdown') as HTMLSelectElement;
+        if (!map || !dropdown) return;
+
+        const [lat, lon] = dropdown.value.split(',').map(Number);
+
+        const markerToRemove = markers.find(
+            (marker) => marker.getLatLng().lat === lat && marker.getLatLng().lng === lon
+        );
+
+        if (!markerToRemove) {
+            alert('Marker not found for this airport!');
+            return;
+        }
+
+        try {
+            const response = await fetch(backendUrl, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lat, lon }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete airport');
+            }
+
+            map.removeLayer(markerToRemove);
+            setMarkers((prevMarkers) => prevMarkers.filter((m) => m !== markerToRemove));
+
+            // Remove the line if it corresponds to the deleted airport
+            if (activeLine) {
+                map.removeLayer(activeLine);
+                activeLine = null;
+            }
+        } catch (error) {
+            console.error('Error deleting airport:', error);
+            alert('Failed to delete airport.');
+        }
+    };
 
     const fetchWeather = async (lat: number, lon: number): Promise<string> => {
         try {
@@ -52,55 +157,7 @@ export default function Page() {
         }
     };
 
-    const handleAddAirport = () => {
-        const dropdown = document.getElementById('airportDropdown') as HTMLSelectElement;
-        if (!map || !dropdown) return;
-
-        const [lat, lon] = dropdown.value.split(',').map(Number);
-        const airportName = dropdown.options[dropdown.selectedIndex].text;
-
-        const existingMarker = markers.find(
-            (marker) => marker.getLatLng().lat === lat && marker.getLatLng().lng === lon
-        );
-
-        if (existingMarker) {
-            alert('Airport already exists on the map!');
-            return;
-        }
-
-        const marker = L.marker([lat, lon])
-            .addTo(map)
-            .bindPopup(`<b>${airportName}</b>`)
-            .on('click', () => handleMarkerClick(lat, lon, marker, airportName))
-            .on('popupclose', handlePopupClose);
-
-        setMarkers((prevMarkers) => [...prevMarkers, marker]);
-    };
-
-    const handleDeleteAirport = () => {
-        const dropdown = document.getElementById('airportDropdown') as HTMLSelectElement;
-        if (!map || !dropdown) return;
-
-        const [lat, lon] = dropdown.value.split(',').map(Number);
-
-        const markerToRemove = markers.find(
-            (marker) => marker.getLatLng().lat === lat && marker.getLatLng().lng === lon
-        );
-
-        if (markerToRemove) {
-            map.removeLayer(markerToRemove);
-            setMarkers((prevMarkers) => prevMarkers.filter((m) => m !== markerToRemove));
-
-            // Remove the line if it corresponds to the deleted airport
-            if (activeLine) {
-                map.removeLayer(activeLine);
-                activeLine = null;
-            }
-        } else {
-            alert('Marker not found for this airport!');
-        }
-    };
-
+    
     const handleMarkerClick = async (lat: number, lon: number, marker: L.Marker, name: string) => {
         if (!map) return;
 
