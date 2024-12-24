@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Variables */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  @apply m-0 p-0;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Map container styling */
+#map {
+  @apply relative w-screen h-screen m-0 p-0;
+}
+
+.animated-line {
+  stroke-dasharray: 5, 10; /* Dotted pattern (dash length, gap length) */
+  stroke-dashoffset: 0;    /* Initial position of the dashes */
+  animation: dash 1s linear infinite; /* Animate the dashes */
+}
+
+.plane-icon {
+  @apply text-lg flex justify-center items-center text-center;
+}
+
+/* Controls container styles */
+#controls {
+  @apply fixed top-2.5 right-2.5 z-50 w-44 bg-black p-2 border border-black rounded shadow-lg;
+}
+
+/* Dropdown menu */
+#airportDropdown {
+  @apply block w-full mb-2 p-2 text-sm border border-gray-300 rounded bg-gray-100;
+}
+
+/* Buttons styling */
+button {
+  @apply block w-full mt-1 p-2 text-sm text-black bg-blue-500 rounded border-none cursor-pointer;
+}
+
+/* Button hover effect */
+button:hover {
+  @apply bg-blue-700;
+}
+
+/* Keyframes for the dash animation */
+@keyframes dash {
+  to {
+    stroke-dashoffset: -15; /* Move the dashes backward to create animation */
+  }
+}
