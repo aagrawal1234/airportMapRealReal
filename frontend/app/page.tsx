@@ -18,7 +18,7 @@ export default function Page() {
     const [map, setMap] = useState<L.Map | null>(null);
     const [markers, setMarkers] = useState<L.Marker[]>([]);
     let activeLine: L.Polyline | null = null;
-    const backendUrl = 'http://localhost:4000/api/airports'; // Replace with your deployed backend URL for production
+    const backendUrl = 'https://airportmaprealreal.onrender.com/api/airports'; // Replace with your deployed backend URL for production
     const krhvCoords: L.LatLngTuple = [37.3326, -121.8192];
     
 
