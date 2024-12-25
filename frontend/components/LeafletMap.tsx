@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -12,6 +12,7 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function LeafletMap() {
+    const mapRef = useRef<L.Map | null>(null); // Ref for the map instance
     const [map, setMap] = useState<L.Map | null>(null);
     const [markers, setMarkers] = useState<L.Marker[]>([]);
     let activeLine: L.Polyline | null = null;
@@ -25,34 +26,54 @@ export default function LeafletMap() {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap contributors',
             }).addTo(initMap);
-            setMap(initMap);
+            
+            mapRef.current = initMap; // Store map in ref
 
-            fetchSavedAirports(initMap);
+            initMap.whenReady(() => {
+                fetchSavedAirports(initMap);
+            });
 
             return () => {
                 initMap.remove();
+                mapRef.current = null;
             };
         }
     }, []);
 
     const fetchSavedAirports = async (initMap: L.Map) => {
+        if (!mapRef.current) {
+            console.error('Map instance is not defined');
+            return;
+        }
+        
         try {
-
             const response = await fetch(backendUrl);
             const airports = await response.json();
 
+            // Clear previous markers to avoid duplicates
             markers.forEach(marker => initMap.removeLayer(marker));
             setMarkers([]);
 
-            airports.forEach((airport: { name: string; lat: number; lon: number }) => {
+            // Add markers and attach event listeners
+            const newMarkers: L.Marker[] = airports.map((airport: { name: string; lat: number; lon: number }) => {
+                console.log('Adding marker for airport:', airport.name);
+            
+                if (!mapRef.current) {
+                    console.error('Map instance became undefined while adding markers.');
+                    return null;
+                }
+
                 const marker = L.marker([airport.lat, airport.lon])
-                    .addTo(initMap)
+                    .addTo(mapRef.current)
                     .bindPopup(`<b>${airport.name}</b>`)
                     .on('click', () => handleMarkerClick(airport.lat, airport.lon, marker, airport.name))
                     .on('popupclose', handlePopupClose);
 
-                setMarkers((prevMarkers) => [...prevMarkers, marker]);
+                return marker;
             });
+
+            // Update state with new markers
+            setMarkers(newMarkers);
         } catch (error) {
             console.error('Error fetching saved airports:', error);
         }
@@ -62,7 +83,7 @@ export default function LeafletMap() {
         if (typeof window === 'undefined') return;
 
         const dropdown = document.getElementById('airportDropdown') as HTMLSelectElement;
-        if (!map || !dropdown) return;
+        if (!mapRef.current || !dropdown) return;
 
         const [lat, lon] = dropdown.value.split(',').map(Number);
         const airportName = dropdown.options[dropdown.selectedIndex].text;
@@ -87,7 +108,7 @@ export default function LeafletMap() {
                 throw new Error('Failed to add airport');
             }
 
-           fetchSavedAirports(map);
+           fetchSavedAirports(mapRef.current);
 
         } catch (error) {
             console.error('Error adding airport:', error);
@@ -99,7 +120,7 @@ export default function LeafletMap() {
         if (typeof window === 'undefined') return;
 
         const dropdown = document.getElementById('airportDropdown') as HTMLSelectElement;
-        if (!map || !dropdown) return;
+        if (!mapRef.current || !dropdown) return;
 
         const [lat, lon] = dropdown.value.split(',').map(Number);
 
@@ -122,7 +143,13 @@ export default function LeafletMap() {
             if (!response.ok) {
                 throw new Error('Failed to delete airport');
             }
-            fetchSavedAirports(map);
+
+            if (mapRef.current) {
+                mapRef.current.removeLayer(markerToRemove);
+            }
+            setMarkers((prevMarkers) => prevMarkers.filter((marker) => marker !== markerToRemove));
+    
+            fetchSavedAirports(mapRef.current);
         } catch (error) {
             console.error('Error deleting airport:', error);
             alert('Failed to delete airport.');
@@ -148,7 +175,7 @@ export default function LeafletMap() {
     };
 
     const handleMarkerClick = async (lat: number, lon: number, marker: L.Marker, name: string) => {
-        if (!map) return;
+        if (!mapRef.current) return;
 
         // Fetch and display weather info
         const weatherInfo = await fetchWeather(lat, lon);
@@ -156,7 +183,7 @@ export default function LeafletMap() {
 
         // Remove existing line
         if (activeLine) {
-            map.removeLayer(activeLine);
+            mapRef.current.removeLayer(activeLine);
             activeLine = null;
         }
 
@@ -171,15 +198,15 @@ export default function LeafletMap() {
             weight: 2,
             dashArray: '5, 10',
             className: 'animated-line',
-        }).addTo(map);
+        }).addTo(mapRef.current);
     };
 
     const handlePopupClose = () => {
-        if (!map) return;
+        if (!mapRef.current) return;
 
         // Remove the active line
         if (activeLine) {
-            map.removeLayer(activeLine);
+            mapRef.current.removeLayer(activeLine);
             activeLine = null;
         }
     };
