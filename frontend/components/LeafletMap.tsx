@@ -13,7 +13,7 @@ L.Icon.Default.mergeOptions({
 
 export default function LeafletMap() {
     const mapRef = useRef<L.Map | null>(null); // Ref for the map instance
-    const [map, setMap] = useState<L.Map | null>(null);
+    /*const [map, setMap] = useState<L.Map | null>(null); */
     const [markers, setMarkers] = useState<L.Marker[]>([]);
     let activeLine: L.Polyline | null = null;
     const backendUrl = 'https://airportmaprealreal.onrender.com/api/airports'; // Replace with your deployed backend URL for production
