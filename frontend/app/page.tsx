@@ -21,22 +21,22 @@ export default function Page() {
     const backendUrl = 'https://airportmaprealreal.onrender.com/api/airports'; // Replace with your deployed backend URL for production
     const krhvCoords: L.LatLngTuple = [37.3326, -121.8192];
     
-
     useEffect(() => {
-        const initMap = L.map('map').setView([37.7749, -122.4194], 7); // Center near San Francisco
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors',
-        }).addTo(initMap);
-        setMap(initMap);
+        if (typeof window !== 'undefined') {
+            const initMap = L.map('map').setView([37.7749, -122.4194], 7); // Center near San Francisco
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors',
+            }).addTo(initMap);
+            setMap(initMap);
 
-        fetchSavedAirports(initMap);
+            fetchSavedAirports(initMap);
 
-        return () => {
-            initMap.remove();
-        };
+            return () => {
+                initMap.remove();
+            };
+        }
     }, []);
-
 
     const fetchSavedAirports = async (initMap: L.Map) => {
         try {
