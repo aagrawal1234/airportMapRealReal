@@ -37,8 +37,12 @@ export default function LeafletMap() {
 
     const fetchSavedAirports = async (initMap: L.Map) => {
         try {
+
             const response = await fetch(backendUrl);
             const airports = await response.json();
+
+            markers.forEach(marker => initMap.removeLayer(marker));
+            setMarkers([]);
 
             airports.forEach((airport: { name: string; lat: number; lon: number }) => {
                 const marker = L.marker([airport.lat, airport.lon])
@@ -83,13 +87,8 @@ export default function LeafletMap() {
                 throw new Error('Failed to add airport');
             }
 
-            const marker = L.marker([lat, lon])
-                .addTo(map)
-                .bindPopup(`<b>${airportName}</b>`)
-                .on('click', () => handleMarkerClick(lat, lon, marker, airportName))
-                .on('popupclose', handlePopupClose);
+           fetchSavedAirports(map);
 
-            setMarkers((prevMarkers) => [...prevMarkers, marker]);
         } catch (error) {
             console.error('Error adding airport:', error);
             alert('Failed to add airport.');
@@ -123,15 +122,7 @@ export default function LeafletMap() {
             if (!response.ok) {
                 throw new Error('Failed to delete airport');
             }
-
-            map.removeLayer(markerToRemove);
-            setMarkers((prevMarkers) => prevMarkers.filter((m) => m !== markerToRemove));
-
-            // Remove the line if it corresponds to the deleted airport
-            if (activeLine) {
-                map.removeLayer(activeLine);
-                activeLine = null;
-            }
+            fetchSavedAirports(map);
         } catch (error) {
             console.error('Error deleting airport:', error);
             alert('Failed to delete airport.');
