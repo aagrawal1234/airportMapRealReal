@@ -60,6 +60,8 @@ export default function Page() {
 
  
        const handleAddAirport = async () => {
+        if (typeof window === 'undefined') return;
+
         const dropdown = document.getElementById('airportDropdown') as HTMLSelectElement;
         if (!map || !dropdown) return;
 
@@ -100,6 +102,8 @@ export default function Page() {
     };
 
     const handleDeleteAirport = async () => {
+        if (typeof window === 'undefined') return;
+        
         const dropdown = document.getElementById('airportDropdown') as HTMLSelectElement;
         if (!map || !dropdown) return;
 
